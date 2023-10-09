@@ -1,0 +1,47 @@
+# ssum specific files
+ssum
+.ssum.cpp.swo
+
+# Compiled object files
+*.o
+*.ko
+*.obj
+*.elf
+
+# Compiled dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Compiled executables
+*.exe
+*.out
+*.app
+
+# Generated files
+*.d
+*.class
+*.pyc
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*~
+
+# Dependency directories
+node_modules/
+bower_components/
+jspm_packages/
+
+# Log files
+*.log
+log/
+logs/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Icon?
+ehthumbs_vista.db
