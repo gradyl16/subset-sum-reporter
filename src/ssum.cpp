@@ -2,30 +2,34 @@
 #include <vector>
 #include <string>
 
+// Structure representing an element with a value and a name.
 struct ssum_elem
 {
-  unsigned int x;   // value of element
-  std::string name; // label for element
+  unsigned int x;   // Value of the element
+  std::string name; // Label for the element
 };
 
+// Structure representing data for the subset sum problem.
 struct ssum_data
 {
-  bool feasible;
-  unsigned long long int num_valid_subsets;
-  unsigned long long int smallest_valid_size;
-  unsigned long long int num_valid_subsets_min_size;
-  std::vector<int> lexi_first_valid_min_size_subset;
+  bool feasible;                     // Indicates if the target is feasible
+  unsigned long long int num_valid_subsets;  // Number of valid subsets
+  unsigned long long int smallest_valid_size;  // Size of the smallest valid subset
+  unsigned long long int num_valid_subsets_min_size;  // Number of valid subsets of the smallest size
+  std::vector<int> lexi_first_valid_min_size_subset; // Lexicographically first subset of the smallest size
 };
 
+// Class representing an instance of the subset sum problem.
 class ssum_instance
 {
   unsigned int target = 0;
   std::vector<std::vector<ssum_data>> feasible;
-  bool done = false; // flag indicating if dp has been run or not on this instance
+  bool done = false; // Flag indicating if dynamic programming has been run or not on this instance
 
 public:
   std::vector<ssum_elem> elems;
 
+  // Function to read elements from the input stream and populate the elems vector.
   int read_elems(std::istream &stream)
   {
     ssum_elem e;
@@ -41,12 +45,14 @@ public:
     return num_elems;
   }
 
+  // Function to solve the subset sum problem for a specified target sum.
   ssum_data solve(unsigned int tgt)
   {
     unsigned int n = elems.size();
     target = tgt;
     feasible = std::vector<std::vector<ssum_data>>(n, std::vector<ssum_data>(target + 1, {false, 0, 0, 0, {}}));
 
+    // Initialize the first column (x=0) as all elements are feasible for an empty subset.
     for (unsigned int i = 0; i < n; i++)
     {
       feasible[i][0].feasible = true;
@@ -56,6 +62,7 @@ public:
       feasible[i][0].lexi_first_valid_min_size_subset = {};
     }
 
+    // Initialize the first row (element 0) for specific cases.
     for (unsigned int x = 1; x <= target; x++)
     {
       if (elems[0].x == x)
@@ -68,10 +75,12 @@ public:
       }
     }
 
+    // Dynamic programming to compute feasibility, number of valid subsets, smallest valid size, and more.
     for (unsigned int i = 1; i < n; i++)
     {
       for (unsigned int x = 1; x <= tgt; x++)
       {
+        // Exclude case
         if (feasible[i - 1][x].feasible)
         {
           feasible[i][x].feasible = true;
@@ -80,6 +89,7 @@ public:
           feasible[i][x].num_valid_subsets_min_size = feasible[i - 1][x].num_valid_subsets_min_size;
           feasible[i][x].lexi_first_valid_min_size_subset = feasible[i - 1][x].lexi_first_valid_min_size_subset;
         }
+        // Include case
         else if (x >= elems[i].x && feasible[i - 1][x - elems[i].x].feasible)
         {
           feasible[i][x].feasible = true;
@@ -104,26 +114,9 @@ public:
     done = true;
     return feasible[n - 1][target];
   }
-}; // end class
+};
 
-/**
-* usage:  ssum  <target> < <input-file>
-*
-*
-* input file format:
-*
-*     sequence of non-negative-int, string pairs
-*
-*     example:
-
-    12 alice
-    9  bob
-    22 cathy
-    12 doug
-
-* such a file specifies a collection of 4 integers: 12, 9, 22, 12
-* "named" alice, bob, cathy and doug.
-*/
+// The main function reads the target value and input data and reports the results.
 int main(int argc, char *argv[])
 {
   unsigned int target;
@@ -131,47 +124,37 @@ int main(int argc, char *argv[])
 
   if (argc != 2)
   {
-    fprintf(stderr, "one cmd-line arg expected: target sum\n");
+    fprintf(stderr, "One command-line argument expected: target sum\n");
+
+
     return 0;
   }
   if (sscanf(argv[1], "%u", &target) != 1)
   {
-    fprintf(stderr, "bad argument '%s'\n", argv[1]);
-    fprintf(stderr, "   Expected unsigned integer\n");
+    fprintf(stderr, "Bad argument '%s'\n", argv[1]);
+    fprintf(stderr, "Expected an unsigned integer\n");
     return 0;
   }
 
-  ssi.read_elems(std::cin);
-
-  // if (ssi.solve(target).feasible)
-  // {
-  //   std::cout << "HOORAY!  Apparently, the target sum of " << target << " is achievable\n";
-  //   std::cout << "  How you ask?  Sorry, we just know it is possible...\n";
-  // }
-  // else
-  // {
-  //   std::cout << "SORRY!  Apparently, the target sum of " << target << " is NOT achievable\n";
-  // }
+  int num_elems = ssi.read_elems(std::cin);
 
   ssum_data result = ssi.solve(target);
 
+  // Print the results and report.
   std::cout << "### REPORT ###" << std::endl;
-  std::cout << "  NUM ELEMS            :     " << ssi.elems.size() << std::endl;
-  std::cout << "  TARGET               :     " << target << std::endl;
-  std::cout << "  NUM-FEASIBLE         :     " << result.num_valid_subsets << std::endl;
-  std::cout << "  MIN-CARD-FEASIBLE    :     " << result.smallest_valid_size << std::endl;
-  std::cout << "  NUM-MIN-CARD-FEASIBLE:     " << result.num_valid_subsets_min_size << std::endl;
+  std::cout << "  NUM ELEMS            : " << num_elems << std::endl;
+  std::cout << "  TARGET               : " << target << std::endl;
+  std::cout << "  NUM-FEASIBLE         : " << result.num_valid_subsets << std::endl;
+  std::cout << "  MIN-CARD-FEASIBLE    : " << result.smallest_valid_size << std::endl;
+  std::cout << "  NUM-MIN-CARD-FEASIBLE: " << result.num_valid_subsets_min_size << std::endl;
   std::cout << "Lex-First Min-Card Subset Totaling " << target << ": " << std::endl;
   std::cout << " {" << std::endl;
 
-  std::string name;
-  int id;
-  int val;
   for (int i = 0; i < result.lexi_first_valid_min_size_subset.size(); i++)
   {
-    name = ssi.elems[i].name;
-    id = result.lexi_first_valid_min_size_subset[i];
-    val = ssi.elems[result.lexi_first_valid_min_size_subset[i]].x;
+    int id = result.lexi_first_valid_min_size_subset[i];
+    int val = ssi.elems[result.lexi_first_valid_min_size_subset[i]].x;
+    std::string name = ssi.elems[result.lexi_first_valid_min_size_subset[i]].name;
     std::cout << "  " << name << "   (  id: " << id << "; val: " << val << ")\n"
               << std::endl;
   }
