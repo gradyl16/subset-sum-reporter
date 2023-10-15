@@ -15,9 +15,9 @@ struct ssum_elem
 struct ssum_data
 {
   bool feasible;
-  int num_valid_subsets;
-  int smallest_valid_size;
-  int num_valid_subsets_min_size;
+  unsigned long long int num_valid_subsets;
+  unsigned long long int smallest_valid_size;
+  unsigned long long int num_valid_subsets_min_size;
   std::vector<int> lexi_first_valid_min_size_subset;
 };
 
@@ -99,6 +99,7 @@ public:
       feasible[i][0].lexi_first_valid_min_size_subset = {};
     }
 
+    // topmost row (row zero) is TRUE only if the first element of the array is equal to the target sum
     for (x = 1; x <= target; x++) // T runtime
     {
       if (elems[0].x == x)
@@ -138,24 +139,24 @@ public:
                                                         feasible[i - 1][x - elems[i].x].smallest_valid_size + 1);
 
           // Unsure about the following code...
-          // // The number of valid subsets of the smallest valid size is the sum of the number of valid subsets of the smallest valid size in the exclude and include cases
-          // if (feasible[i][x].smallest_valid_size == feasible[i - 1][x].smallest_valid_size) // if the smallest valid size is the same as the exclude case
-          // {
-          //   // Add the number of valid subsets of the smallest valid size in the exclude case to the number of valid subsets of the smallest valid size in the include case
-          //   feasible[i][x].num_valid_subsets_min_size += feasible[i - 1][x].num_valid_subsets_min_size;
+          // The number of valid subsets of the smallest valid size is the sum of the number of valid subsets of the smallest valid size in the exclude and include cases
+          if (feasible[i][x].smallest_valid_size == feasible[i - 1][x].smallest_valid_size) // if the smallest valid size is the same as the exclude case
+          {
+            // Add the number of valid subsets of the smallest valid size in the exclude case to the number of valid subsets of the smallest valid size in the include case
+            feasible[i][x].num_valid_subsets_min_size += feasible[i - 1][x].num_valid_subsets_min_size;
 
-          //   // Add the lexicographically first valid subset of the smallest valid size in the exclude case to the lexicographically first valid subset of the smallest valid size in the include case
-          //   feasible[i][x].lexi_first_valid_min_size_subset.insert(
-          //       feasible[i][x].lexi_first_valid_min_size_subset.end(),
-          //       feasible[i - 1][x].lexi_first_valid_min_size_subset.begin(),
-          //       feasible[i - 1][x].lexi_first_valid_min_size_subset.end());
-          // }
-          // else if (feasible[i][x].smallest_valid_size == feasible[i - 1][x - elems[i].x].smallest_valid_size + 1) // if the smallest valid size is the same as the include case
-          // {
-          //   feasible[i][x].num_valid_subsets_min_size = feasible[i - 1][x - elems[i].x].num_valid_subsets_min_size;
-          //   feasible[i][x].lexi_first_valid_min_size_subset = feasible[i - 1][x - elems[i].x].lexi_first_valid_min_size_subset;
-          //   feasible[i][x].lexi_first_valid_min_size_subset.push_back(i);
-          // }
+            // Add the lexicographically first valid subset of the smallest valid size in the exclude case to the lexicographically first valid subset of the smallest valid size in the include case
+            feasible[i][x].lexi_first_valid_min_size_subset.insert(
+                feasible[i][x].lexi_first_valid_min_size_subset.end(),
+                feasible[i - 1][x].lexi_first_valid_min_size_subset.begin(),
+                feasible[i - 1][x].lexi_first_valid_min_size_subset.end());
+          }
+          else if (feasible[i][x].smallest_valid_size == feasible[i - 1][x - elems[i].x].smallest_valid_size + 1) // if the smallest valid size is the same as the include case
+          {
+            feasible[i][x].num_valid_subsets_min_size = feasible[i - 1][x - elems[i].x].num_valid_subsets_min_size;
+            feasible[i][x].lexi_first_valid_min_size_subset = feasible[i - 1][x - elems[i].x].lexi_first_valid_min_size_subset;
+            feasible[i][x].lexi_first_valid_min_size_subset.push_back(i);
+          }
           // otherwise, feasible[i][x].num_valid_subsets_min_size and feasible[i][x].lexi_first_valid_min_size_subset remain 0 and empty
         }
       }
