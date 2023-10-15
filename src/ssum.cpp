@@ -1,10 +1,6 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string>
 #include <iostream>
-#include <fstream>
 #include <vector>
-#include <set>
+#include <string>
 
 struct ssum_elem
 {
@@ -25,73 +21,34 @@ class ssum_instance
 {
   unsigned int target = 0;
   std::vector<std::vector<ssum_data>> feasible;
-  // std::vector<std::vector<int>> valid_min_size_subsets;
-
-  // first el in this set will be lexicographically first; but logn insertion time... use vector?
-  // std::set<std::set<int>> valid_min_size_subsets;
-
-  // feasible[i][x] = TRUE if there is a subset
-  //  of a[0..i] adding up to x; FALSE otherwise
-  //  (once instance has been solved)
-  //
-  int done = false; // flag indicating if dp has been run or
-                    //   not on this instance
+  bool done = false; // flag indicating if dp has been run or not on this instance
 
 public:
   std::vector<ssum_elem> elems;
-  
-  // Function:  read_elems
-  // Description:  reads elements from standard-input, returns num els;
-  //   Format:  sequence of <number> <name> pairs where
-  //      <number> is non-negative int and
-  //      <name> is a string associated with element
+
   int read_elems(std::istream &stream)
   {
-    int count = 0;
     ssum_elem e;
-
     elems.clear();
-    // while(std::cin >> e.x && std::cin >> e.name) {
+    int num_elems = 0;
+
     while (stream >> e.x && stream >> e.name)
     {
       elems.push_back(e);
-      count++;
+      num_elems++;
     }
     done = false;
-
-    return count;
+    return num_elems;
   }
 
-  // Function:  solve
-  // Desc:  populates dynamic programming table of
-  //    calling object for specified target sum.
-  //    Returns true/false depending on whether the
-  //    target sum is achievable or not.
-  //    Table remains intact after call.
-  //    Object can be reused for alternative target sums.
   ssum_data solve(unsigned int tgt)
   {
     unsigned int n = elems.size();
-    unsigned int i, x;
-
-    // If target sum is previously requested one and table has already been populated, ret result
-    if (target == tgt && done)
-      return feasible[n - 1][tgt];
-
-    /*
-      Note: rethink how subsolutions are defined and computed -- left to right may not be sufficient!
-    */
-
-    // Otherwise, reset class members to prepare for new table population
     target = tgt;
-    feasible =
-        std::vector<std::vector<ssum_data>>(n, std::vector<ssum_data>(target + 1, {false, 0, 0, 0, {}}));
+    feasible = std::vector<std::vector<ssum_data>>(n, std::vector<ssum_data>(target + 1, {false, 0, 0, 0, {}}));
 
-    // leftmost column (column zero) is all TRUE because
-    //    a target sum of zero is always acheivable (via the
-    //    empty set).
-    for (i = 0; i < n; i++)
-    { // N runtime
+    for (unsigned int i = 0; i < n; i++)
+    {
       feasible[i][0].feasible = true;
       feasible[i][0].num_valid_subsets = 1;
       feasible[i][0].smallest_valid_size = 0;
@@ -99,8 +56,7 @@ public:
       feasible[i][0].lexi_first_valid_min_size_subset = {};
     }
 
-    // topmost row (row zero) is TRUE only if the first element of the array is equal to the target sum
-    for (x = 1; x <= target; x++) // T runtime
+    for (unsigned int x = 1; x <= target; x++)
     {
       if (elems[0].x == x)
       {
@@ -110,57 +66,41 @@ public:
         feasible[0][x].num_valid_subsets_min_size = 1;
         feasible[0][x].lexi_first_valid_min_size_subset = {0};
       }
-      // otherwise, feasible[0][x] remains false
     }
-    for (i = 1; i < n; i++) // NT runtime
+
+    for (unsigned int i = 1; i < n; i++)
     {
-      for (x = 1; x <= tgt; x++)
+      for (unsigned int x = 1; x <= tgt; x++)
       {
-        // Exclude case
         if (feasible[i - 1][x].feasible)
         {
           feasible[i][x].feasible = true;
+          feasible[i][x].num_valid_subsets = feasible[i - 1][x].num_valid_subsets;
+          feasible[i][x].smallest_valid_size = feasible[i - 1][x].smallest_valid_size;
+          feasible[i][x].num_valid_subsets_min_size = feasible[i - 1][x].num_valid_subsets_min_size;
+          feasible[i][x].lexi_first_valid_min_size_subset = feasible[i - 1][x].lexi_first_valid_min_size_subset;
         }
-        // Include case
         else if (x >= elems[i].x && feasible[i - 1][x - elems[i].x].feasible)
         {
           feasible[i][x].feasible = true;
-        }
-        // otherwise, feasible[i][x].feasible remains false
-
-        // Use boolean feasibility to compute auxiliary data
-        if (feasible[i][x].feasible)
-        {
-          // The number of valid distinct subsets is the sum of the number of valid distinct subsets in the exclude and include cases
           feasible[i][x].num_valid_subsets = feasible[i - 1][x].num_valid_subsets + feasible[i - 1][x - elems[i].x].num_valid_subsets;
+          feasible[i][x].smallest_valid_size = std::min(feasible[i - 1][x].smallest_valid_size, feasible[i - 1][x - elems[i].x].smallest_valid_size + 1);
 
-          // The smallest valid subset size is the minimum of the smallest valid subset size in the exclude and include cases
-          feasible[i][x].smallest_valid_size = std::min(feasible[i - 1][x].smallest_valid_size,
-                                                        feasible[i - 1][x - elems[i].x].smallest_valid_size + 1);
-
-          // Unsure about the following code...
-          // The number of valid subsets of the smallest valid size is the sum of the number of valid subsets of the smallest valid size in the exclude and include cases
-          if (feasible[i][x].smallest_valid_size == feasible[i - 1][x].smallest_valid_size) // if the smallest valid size is the same as the exclude case
+          if (feasible[i][x].smallest_valid_size == feasible[i - 1][x].smallest_valid_size)
           {
-            // Add the number of valid subsets of the smallest valid size in the exclude case to the number of valid subsets of the smallest valid size in the include case
-            feasible[i][x].num_valid_subsets_min_size += feasible[i - 1][x].num_valid_subsets_min_size;
-
-            // Add the lexicographically first valid subset of the smallest valid size in the exclude case to the lexicographically first valid subset of the smallest valid size in the include case
-            feasible[i][x].lexi_first_valid_min_size_subset.insert(
-                feasible[i][x].lexi_first_valid_min_size_subset.end(),
-                feasible[i - 1][x].lexi_first_valid_min_size_subset.begin(),
-                feasible[i - 1][x].lexi_first_valid_min_size_subset.end());
+            feasible[i][x].num_valid_subsets_min_size = feasible[i - 1][x].num_valid_subsets_min_size;
+            feasible[i][x].lexi_first_valid_min_size_subset = feasible[i - 1][x].lexi_first_valid_min_size_subset;
           }
-          else if (feasible[i][x].smallest_valid_size == feasible[i - 1][x - elems[i].x].smallest_valid_size + 1) // if the smallest valid size is the same as the include case
+          else if (feasible[i][x].smallest_valid_size == feasible[i - 1][x - elems[i].x].smallest_valid_size + 1)
           {
             feasible[i][x].num_valid_subsets_min_size = feasible[i - 1][x - elems[i].x].num_valid_subsets_min_size;
             feasible[i][x].lexi_first_valid_min_size_subset = feasible[i - 1][x - elems[i].x].lexi_first_valid_min_size_subset;
             feasible[i][x].lexi_first_valid_min_size_subset.push_back(i);
           }
-          // otherwise, feasible[i][x].num_valid_subsets_min_size and feasible[i][x].lexi_first_valid_min_size_subset remain 0 and empty
         }
       }
     }
+
     done = true;
     return feasible[n - 1][target];
   }
@@ -212,15 +152,29 @@ int main(int argc, char *argv[])
   // {
   //   std::cout << "SORRY!  Apparently, the target sum of " << target << " is NOT achievable\n";
   // }
+
+  ssum_data result = ssi.solve(target);
+
   std::cout << "### REPORT ###" << std::endl;
   std::cout << "  NUM ELEMS            :     " << ssi.elems.size() << std::endl;
   std::cout << "  TARGET               :     " << target << std::endl;
-  std::cout << "  NUM-FEASIBLE         :     " << ssi.solve(target).num_valid_subsets << std::endl;
-  std::cout << "  MIN-CARD-FEASIBLE    :     " << ssi.solve(target).smallest_valid_size << std::endl;
-  std::cout << "  NUM-MIN-CARD-FEASIBLE:     " << ssi.solve(target).num_valid_subsets_min_size << std::endl;
+  std::cout << "  NUM-FEASIBLE         :     " << result.num_valid_subsets << std::endl;
+  std::cout << "  MIN-CARD-FEASIBLE    :     " << result.smallest_valid_size << std::endl;
+  std::cout << "  NUM-MIN-CARD-FEASIBLE:     " << result.num_valid_subsets_min_size << std::endl;
   std::cout << "Lex-First Min-Card Subset Totaling " << target << ": " << std::endl;
-  for (int i = 0; i < ssi.solve(target).lexi_first_valid_min_size_subset.size(); i++)
+  std::cout << " {" << std::endl;
+
+  std::string name;
+  int id;
+  int val;
+  for (int i = 0; i < result.lexi_first_valid_min_size_subset.size(); i++)
   {
-    std::cout << "  " << ssi.solve(target).lexi_first_valid_min_size_subset[i] << " " << ssi.elems[ssi.solve(target).lexi_first_valid_min_size_subset[i]].name << std::endl;
+    name = ssi.elems[i].name;
+    id = result.lexi_first_valid_min_size_subset[i];
+    val = ssi.elems[result.lexi_first_valid_min_size_subset[i]].x;
+    std::cout << "  " << name << "   (  id: " << id << "; val: " << val << ")\n"
+              << std::endl;
   }
+
+  std::cout << " }" << std::endl;
 }
