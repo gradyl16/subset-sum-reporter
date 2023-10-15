@@ -12,10 +12,10 @@ struct ssum_elem
 // Structure representing data for the subset sum problem.
 struct ssum_data
 {
-  bool feasible;                     // Indicates if the target is feasible
-  unsigned long long int num_valid_subsets;  // Number of valid subsets
-  unsigned long long int smallest_valid_size;  // Size of the smallest valid subset
-  unsigned long long int num_valid_subsets_min_size;  // Number of valid subsets of the smallest size
+  bool feasible;                                     // Indicates if the target is feasible
+  unsigned long long int num_valid_subsets;          // Number of valid subsets
+  unsigned long long int smallest_valid_size;        // Size of the smallest valid subset
+  unsigned long long int num_valid_subsets_min_size; // Number of valid subsets of the smallest size
   std::vector<int> lexi_first_valid_min_size_subset; // Lexicographically first subset of the smallest size
 };
 
@@ -55,27 +55,27 @@ public:
     // Initialize the first column (x=0) as all elements are feasible for an empty subset.
     for (unsigned int i = 0; i < n; i++)
     {
-      feasible[i][0].feasible = true;
-      feasible[i][0].num_valid_subsets = 1;
-      feasible[i][0].smallest_valid_size = 0;
-      feasible[i][0].num_valid_subsets_min_size = 1;
-      feasible[i][0].lexi_first_valid_min_size_subset = {};
+      feasible[i][0].feasible = true;                       // The empty subset is a subset of all sets, and the empty set can create a target sum of 0.
+      feasible[i][0].num_valid_subsets = 1;                 // The only feasible subset for a target sum of 0 is the empty set.
+      feasible[i][0].smallest_valid_size = 0;               // The empty set has cardinality of 0.
+      feasible[i][0].num_valid_subsets_min_size = 1;        // The only feasible subset for a target sum of 0 is the empty set (same as overall # of valid ssets).
+      feasible[i][0].lexi_first_valid_min_size_subset = {}; // The empty set is the lexicographically first subset of cardinality 0.
     }
 
     // Initialize the first row (element 0) for specific cases.
     for (unsigned int x = 1; x <= target; x++)
     {
+      // If the first element in the array is the target sum...
       if (elems[0].x == x)
       {
-        feasible[0][x].feasible = true;
-        feasible[0][x].num_valid_subsets = 1;
-        feasible[0][x].smallest_valid_size = 1;
-        feasible[0][x].num_valid_subsets_min_size = 1;
-        feasible[0][x].lexi_first_valid_min_size_subset = {0};
+        feasible[0][x].feasible = true;                        // The first element can create a target sum of itself.
+        feasible[0][x].num_valid_subsets = 1;                  // The only feasible subset for a target sum of the first element is the first element.
+        feasible[0][x].smallest_valid_size = 1;                // The set containing the first element has cardinality of 1.
+        feasible[0][x].num_valid_subsets_min_size = 1;         // The only feasible subset for a target sum of the first element is the first element (same as overall # of valid ssets).
+        feasible[0][x].lexi_first_valid_min_size_subset = {0}; // The set containing the index of the first element is the lexicographically first subset of cardinality 1.
       }
     }
 
-    // Dynamic programming to compute feasibility, number of valid subsets, smallest valid size, and more.
     for (unsigned int i = 1; i < n; i++)
     {
       for (unsigned int x = 1; x <= tgt; x++)
@@ -83,13 +83,13 @@ public:
         // Exclude case
         if (feasible[i - 1][x].feasible)
         {
-          feasible[i][x].feasible = true;
-          feasible[i][x].num_valid_subsets = feasible[i - 1][x].num_valid_subsets;
-          feasible[i][x].smallest_valid_size = feasible[i - 1][x].smallest_valid_size;
-          feasible[i][x].num_valid_subsets_min_size = feasible[i - 1][x].num_valid_subsets_min_size;
-          feasible[i][x].lexi_first_valid_min_size_subset = feasible[i - 1][x].lexi_first_valid_min_size_subset;
+          feasible[i][x].feasible = true;                                                                        // feasible to exclude newest element --> feasible to exclude newest element or include newest element
+          feasible[i][x].num_valid_subsets = feasible[i - 1][x].num_valid_subsets;                               // # of valid subsets for target x is the same as the # of valid subsets for target x without newest element
+          feasible[i][x].smallest_valid_size = feasible[i - 1][x].smallest_valid_size;                           // smallest valid size for target x is the same as the smallest valid size for target x without newest element
+          feasible[i][x].num_valid_subsets_min_size = feasible[i - 1][x].num_valid_subsets_min_size;             // # of valid subsets of the smallest size for target x is the same as the # of valid subsets of the smallest size for target x without newest element
+          feasible[i][x].lexi_first_valid_min_size_subset = feasible[i - 1][x].lexi_first_valid_min_size_subset; // lexicographically first subset of the smallest size for target x is the same as the lexicographically first subset of the smallest size for target x without newest element
         }
-        // Include case
+        // Include case (short circuit if the current target is less than the current element's value)
         else if (x >= elems[i].x && feasible[i - 1][x - elems[i].x].feasible)
         {
           feasible[i][x].feasible = true;
@@ -125,10 +125,9 @@ int main(int argc, char *argv[])
   if (argc != 2)
   {
     fprintf(stderr, "One command-line argument expected: target sum\n");
-
-
     return 0;
   }
+
   if (sscanf(argv[1], "%u", &target) != 1)
   {
     fprintf(stderr, "Bad argument '%s'\n", argv[1]);
@@ -155,6 +154,7 @@ int main(int argc, char *argv[])
     int id = result.lexi_first_valid_min_size_subset[i];
     int val = ssi.elems[result.lexi_first_valid_min_size_subset[i]].x;
     std::string name = ssi.elems[result.lexi_first_valid_min_size_subset[i]].name;
+
     std::cout << "  " << name << "   (  id: " << id << "; val: " << val << ")\n"
               << std::endl;
   }
