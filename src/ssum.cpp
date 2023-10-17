@@ -6,7 +6,7 @@
 #include <vector>
 #include <algorithm>
 
-const unsigned long long int INF = 9999999999999999999;
+const unsigned long long int INF = 99999999999999;
 
 struct ssum_elem
 {
@@ -17,10 +17,10 @@ struct ssum_elem
 struct ssum_data
 {
   bool feasible;
+  bool include;
   unsigned long long int num_valid_subsets;
   unsigned long long int smallest_valid_size;
   unsigned long long int num_valid_subsets_min_size;
-  std::vector<int> lexi_first_valid_min_size_subset;
 };
 
 class ssum_instance
@@ -89,7 +89,7 @@ public:
 
     // Otherwise, reset class members to prepare for new table population
     target = tgt;
-    feasible = std::vector<std::vector<ssum_data>>(n, std::vector<ssum_data>(target + 1, {false, 0, INF, 0, {}}));
+    feasible = std::vector<std::vector<ssum_data>>(n, std::vector<ssum_data>(target + 1, {false, false, 0, INF, 0}));
 
     // leftmost column (column zero) is all TRUE because
     //    a target sum of zero is always acheivable (via the
@@ -97,10 +97,10 @@ public:
     for (i = 0; i < n; i++)
     { // N runtime
       feasible[i][0].feasible = true;
+      feasible[i][0].include = false;
       feasible[i][0].num_valid_subsets = 1;
       feasible[i][0].smallest_valid_size = 0;
       feasible[i][0].num_valid_subsets_min_size = 1;
-      feasible[i][0].lexi_first_valid_min_size_subset = {};
     }
 
     // topmost row (row zero) is TRUE only if the first element of the array is equal to the target sum
@@ -109,10 +109,10 @@ public:
       if (elems[0].x == x)
       {
         feasible[0][x].feasible = true;
+        feasible[0][x].include = true;
         feasible[0][x].num_valid_subsets = 1;
         feasible[0][x].smallest_valid_size = 1;
         feasible[0][x].num_valid_subsets_min_size = 1;
-        feasible[0][x].lexi_first_valid_min_size_subset = {0};
       }
       // otherwise, feasible[0][x] remains false
     }
@@ -124,15 +124,24 @@ public:
         if (feasible[i - 1][x].feasible)
         {
           feasible[i][x].feasible = true;
+          // include remains false
           feasible[i][x].num_valid_subsets = feasible[i - 1][x].num_valid_subsets;
           feasible[i][x].smallest_valid_size = feasible[i - 1][x].smallest_valid_size;
           feasible[i][x].num_valid_subsets_min_size = feasible[i - 1][x].num_valid_subsets_min_size;
-          feasible[i][x].lexi_first_valid_min_size_subset = feasible[i - 1][x].lexi_first_valid_min_size_subset;
         }
         // Include case
         if (x >= elems[i].x && feasible[i - 1][x - elems[i].x].feasible)
         {
           feasible[i][x].feasible = true;
+
+          if (feasible[i - 1][x].smallest_valid_size + 1 == feasible[i - 1][x - elems[i].x].smallest_valid_size + 1)
+          {
+            feasible[i][x].include = feasible[i - 1][x].num_valid_subsets_min_size < feasible[i - 1][x - elems[i].x].num_valid_subsets_min_size;
+          }
+          else
+          {
+            feasible[i][x].include = feasible[i - 1][x].smallest_valid_size + 1 < feasible[i - 1][x - elems[i].x].smallest_valid_size + 1;
+          }
 
           // The number of valid distinct subsets is the sum of the number of valid distinct subsets in the exclude and include cases
           feasible[i][x].num_valid_subsets = feasible[i - 1][x].num_valid_subsets + feasible[i - 1][x - elems[i].x].num_valid_subsets;
@@ -142,24 +151,18 @@ public:
                                                         feasible[i - 1][x - elems[i].x].smallest_valid_size + 1);
 
           // It must be the case that the min card is either the min card in the exclude case or 1 greater than the min card in the include case
-          if (feasible[i][x].smallest_valid_size == feasible[i - 1][x].smallest_valid_size) // The smallest cardinality for a distinct subset has not changed:
+          if (feasible[i][x].smallest_valid_size == feasible[i - 1][x].smallest_valid_size + 1) // The smallest cardinality for a distinct subset has not changed:
           {
             // Add the number of valid subsets of the smallest valid size in the exclude case to the number of valid subsets of the smallest valid size in the include case
             feasible[i][x].num_valid_subsets_min_size = feasible[i - 1][x].num_valid_subsets_min_size + feasible[i - 1][x - elems[i].x].num_valid_subsets_min_size;
           }
-          else if (feasible[i][x].smallest_valid_size == feasible[i - 1][x - elems[i].x].smallest_valid_size + 1) // The smallest cardinality for a distinct subset has incremented
+          else if (feasible[i][x].smallest_valid_size < feasible[i - 1][x - elems[i].x].smallest_valid_size + 1) // The smallest cardinality for a distinct subset has incremented
           {
-            // TODO: This is wrong, but I'm not sure how to fix it
-            // feasible[i][x].num_valid_subsets_min_size = feasible[i - 1][x - elems[i].x].num_valid_subsets_min_size;
-
-            // Reset count since we have found a new min card -- how to account for sets we may have already discovered of new minimum size?
-            feasible[i][x].num_valid_subsets_min_size = 0;
-
-
-            // TODO: This is wrong, but I'm not sure how to fix it
-            // Construct the lexicographically first subset including the new element by taking the lexicographically first subset in the include case and appending the new element
-            // feasible[i][x].lexi_first_valid_min_size_subset = feasible[i - 1][x - elems[i].x].lexi_first_valid_min_size_subset;
-            // feasible[i][x].lexi_first_valid_min_size_subset.push_back(i);
+            feasible[i][x].num_valid_subsets_min_size = feasible[i - 1][x].num_valid_subsets_min_size;
+          }
+          else
+          {
+            feasible[i][x].num_valid_subsets_min_size = feasible[i - 1][x - elems[i].x].num_valid_subsets_min_size;
           }
         }
         // otherwise, feasible[i][x].feasible remains false
@@ -168,6 +171,21 @@ public:
 
     done = true;
     return feasible[n - 1][target];
+  }
+
+  std::vector<int> extract(ssum_data result) {
+    std::vector<int> lexi_first;
+    int i = elems.size() - 1;
+    int x = target;
+    while (i >= 0 && x >= 0) {
+      if (feasible[i][x].include) {
+        lexi_first.push_back(i);
+        x -= elems[i].x;
+      }
+      i--;
+    }
+    std::reverse(lexi_first.begin(), lexi_first.end());
+    return lexi_first;
   }
 }; // end class
 
@@ -220,11 +238,14 @@ int main(int argc, char *argv[])
   std::cout << "Lex-First Min-Card Subset Totaling " << target << ": " << std::endl;
   std::cout << " {" << std::endl;
 
-  for (int i = 0; i < result.lexi_first_valid_min_size_subset.size(); i++)
+  std::vector<int> lexi_first_min_card = ssi.extract(result);
+  std::reverse(ssi.elems.begin(), ssi.elems.end());
+
+  for (int i = 0; i < lexi_first_min_card.size(); i++)
   {
-    int id = result.lexi_first_valid_min_size_subset[i];
-    int val = ssi.elems[result.lexi_first_valid_min_size_subset[i]].x;
-    std::string name = ssi.elems[result.lexi_first_valid_min_size_subset[i]].name;
+    int id = lexi_first_min_card[i];
+    int val = ssi.elems[id].x;
+    std::string name = ssi.elems[id].name;
     std::cout << "  " << name << "   (  id: " << id << "; val: " << val << ")"
               << std::endl;
   }
