@@ -4,7 +4,9 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
-#include <set>
+#include <algorithm>
+
+const unsigned long long int INF = 9999999999999999999;
 
 struct ssum_elem
 {
@@ -25,7 +27,7 @@ class ssum_instance
 {
   unsigned int target = 0;
   std::vector<std::vector<ssum_data>> feasible;
-  // std::vector<std::vector<int>> valid_min_size_subsets;
+  std::vector<std::vector<int>> subsets_count;
 
   // first el in this set will be lexicographically first; but logn insertion time... use vector?
   // std::set<std::set<int>> valid_min_size_subsets;
@@ -74,6 +76,9 @@ public:
     unsigned int n = elems.size();
     unsigned int i, x;
 
+    // Reverse the elements -- this will help us to extract the lexicographically first subset
+    std::reverse(elems.begin(), elems.end());
+
     // If target sum is previously requested one and table has already been populated, ret result
     if (target == tgt && done)
       return feasible[n - 1][tgt];
@@ -84,8 +89,7 @@ public:
 
     // Otherwise, reset class members to prepare for new table population
     target = tgt;
-    feasible =
-        std::vector<std::vector<ssum_data>>(n, std::vector<ssum_data>(target + 1, {false, 0, 0, 0, {}}));
+    feasible = std::vector<std::vector<ssum_data>>(n, std::vector<ssum_data>(target + 1, {false, 0, INF, 0, {}}));
 
     // leftmost column (column zero) is all TRUE because
     //    a target sum of zero is always acheivable (via the
@@ -133,33 +137,32 @@ public:
           // The number of valid distinct subsets is the sum of the number of valid distinct subsets in the exclude and include cases
           feasible[i][x].num_valid_subsets = feasible[i - 1][x].num_valid_subsets + feasible[i - 1][x - elems[i].x].num_valid_subsets;
 
-          // TODO: revise this rule
           // The smallest valid subset size is the minimum of the smallest valid subset size in the exclude and include cases
           feasible[i][x].smallest_valid_size = std::min(feasible[i - 1][x].smallest_valid_size,
                                                         feasible[i - 1][x - elems[i].x].smallest_valid_size + 1);
 
-          // The number of valid subsets of the smallest valid size is the sum of the number of valid subsets of the smallest valid size in the exclude and include cases
-          if (feasible[i][x].smallest_valid_size == feasible[i - 1][x].smallest_valid_size) // if the smallest valid size is the same as the exclude case
+          // It must be the case that the min card is either the min card in the exclude case or 1 greater than the min card in the include case
+          if (feasible[i][x].smallest_valid_size == feasible[i - 1][x].smallest_valid_size) // The smallest cardinality for a distinct subset has not changed:
           {
             // Add the number of valid subsets of the smallest valid size in the exclude case to the number of valid subsets of the smallest valid size in the include case
-            feasible[i][x].num_valid_subsets_min_size += feasible[i - 1][x].num_valid_subsets_min_size;
-
-            // Add the lexicographically first valid subset of the smallest valid size in the exclude case to the lexicographically first valid subset of the smallest valid size in the include case
-            feasible[i][x].lexi_first_valid_min_size_subset.insert(
-                feasible[i][x].lexi_first_valid_min_size_subset.end(),
-                feasible[i - 1][x].lexi_first_valid_min_size_subset.begin(),
-                feasible[i - 1][x].lexi_first_valid_min_size_subset.end());
+            feasible[i][x].num_valid_subsets_min_size = feasible[i - 1][x].num_valid_subsets_min_size + feasible[i - 1][x - elems[i].x].num_valid_subsets_min_size;
           }
-          else if (feasible[i][x].smallest_valid_size == feasible[i - 1][x - elems[i].x].smallest_valid_size + 1) // if the smallest valid size is the same as the include case
+          else if (feasible[i][x].smallest_valid_size == feasible[i - 1][x - elems[i].x].smallest_valid_size + 1) // The smallest cardinality for a distinct subset has incremented
           {
-            feasible[i][x].num_valid_subsets_min_size = feasible[i - 1][x - elems[i].x].num_valid_subsets_min_size;
-            feasible[i][x].lexi_first_valid_min_size_subset = feasible[i - 1][x - elems[i].x].lexi_first_valid_min_size_subset;
-            feasible[i][x].lexi_first_valid_min_size_subset.push_back(i);
+            // TODO: This is wrong, but I'm not sure how to fix it
+            // feasible[i][x].num_valid_subsets_min_size = feasible[i - 1][x - elems[i].x].num_valid_subsets_min_size;
+
+            // Reset count since we have found a new min card -- how to account for sets we may have already discovered of new minimum size?
+            feasible[i][x].num_valid_subsets_min_size = 0;
+
+
+            // TODO: This is wrong, but I'm not sure how to fix it
+            // Construct the lexicographically first subset including the new element by taking the lexicographically first subset in the include case and appending the new element
+            // feasible[i][x].lexi_first_valid_min_size_subset = feasible[i - 1][x - elems[i].x].lexi_first_valid_min_size_subset;
+            // feasible[i][x].lexi_first_valid_min_size_subset.push_back(i);
           }
         }
         // otherwise, feasible[i][x].feasible remains false
-
-        // otherwise, feasible[i][x].num_valid_subsets_min_size and feasible[i][x].lexi_first_valid_min_size_subset remain 0 and empty
       }
     }
 
@@ -222,7 +225,7 @@ int main(int argc, char *argv[])
     int id = result.lexi_first_valid_min_size_subset[i];
     int val = ssi.elems[result.lexi_first_valid_min_size_subset[i]].x;
     std::string name = ssi.elems[result.lexi_first_valid_min_size_subset[i]].name;
-    std::cout << "  " << name << "   (  id: " << id << "; val: " << val << ")\n"
+    std::cout << "  " << name << "   (  id: " << id << "; val: " << val << ")"
               << std::endl;
   }
 
