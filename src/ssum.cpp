@@ -154,23 +154,25 @@ public:
 
           // # of valid ssets is the sum of the # of valid ssets in the exclude and include cases
           // Note that # valid ssets in exclude case is already stored in exclude case, so we accumulate
-          ssum_table[i][x].no_v_ssets += ssum_table[i - 1][x - elems[i].x].no_v_ssets;
+          ssum_table[i][x].no_v_ssets = ssum_table[i - 1][x].no_v_ssets
+                                      + ssum_table[i - 1][x - elems[i].x].no_v_ssets;
 
           // min card is min btween exclude and include cases -- if one is infeasible, other is min (INF const)
           ssum_table[i][x].min_card = std::min(ssum_table[i - 1][x].min_card,
                                                ssum_table[i - 1][x - elems[i].x].min_card + 1);
 
           // Smallest valid size has either not changed, decreased, or increased bc of new el
-          if (ssum_table[i - 1][x].min_card == ssum_table[i - 1][x - elems[i].x].min_card + 1) // The smallest cardinality for a distinct subset has not changed
+          if (ssum_table[i - 1][x].min_card == ssum_table[i - 1][x - elems[i].x].min_card + 1)
           {
             // # of valid ssets of min card is the sum of the # of valid ssets in the exclude and include cases
             // since they are both of min card
-            ssum_table[i][x].no_v_ssets_min_card = ssum_table[i - 1][x].no_v_ssets_min_card + ssum_table[i - 1][x - elems[i].x].no_v_ssets_min_card;
+            ssum_table[i][x].no_v_ssets_min_card = ssum_table[i - 1][x].no_v_ssets_min_card
+                                                 + ssum_table[i - 1][x - elems[i].x].no_v_ssets_min_card;
 
             // new el may be included since min card would not change as a result of its inclusion
             ssum_table[i][x].include = true;
           }
-          else if (ssum_table[i - 1][x].min_card > ssum_table[i - 1][x - elems[i].x].min_card + 1) // The smallest cardinality for a distinct subset has incremented
+          else if (ssum_table[i - 1][x].min_card > ssum_table[i - 1][x - elems[i].x].min_card + 1) 
           {
             // # of valid ssets of min card is the # of valid ssets in the include case since it is the
             // only one of min card
@@ -179,7 +181,7 @@ public:
             // new el may be included since min card would decrease as a result of its inclusion
             ssum_table[i][x].include = true;
           }
-          else if (ssum_table[i - 1][x].min_card < ssum_table[i - 1][x - elems[i].x].min_card + 1) // The smallest cardinality for a distinct subset has decreased
+          else if (ssum_table[i - 1][x].min_card < ssum_table[i - 1][x - elems[i].x].min_card + 1)
           {
             // # of valid ssets of min card is the # of valid ssets in the exclude case since it is the
             // only one of min card
