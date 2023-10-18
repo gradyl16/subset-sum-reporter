@@ -46,20 +46,16 @@ public:
   // Format:  sequence of <number> <name> pairs where
   //      <number> is non-negative int and
   //      <name> is a string associated with element
-  int read_elems(std::istream &stream)
+  void read_elems(std::istream &stream)
   {
-    int count = 0;
     ssum_elem e;
 
     elems.clear();
     while (stream >> e.x && stream >> e.name)
     {
       elems.push_back(e);
-      count++;
     }
     done = false;
-
-    return count;
   }
 
   // Function:  solve
@@ -169,8 +165,7 @@ public:
           {
             // # of valid ssets of min card is the sum of the # of valid ssets in the exclude and include cases
             // since they are both of min card
-            ssum_table[i][x].no_v_ssets_min_card = ssum_table[i - 1][x].no_v_ssets_min_card
-                                                 + ssum_table[i - 1][x - elems[i].x].no_v_ssets_min_card;
+            ssum_table[i][x].no_v_ssets_min_card = ssum_table[i - 1][x].no_v_ssets_min_card + ssum_table[i - 1][x - elems[i].x].no_v_ssets_min_card;
 
             // new el may be included since min card would not change as a result of its inclusion
             ssum_table[i][x].include = true;
@@ -199,71 +194,41 @@ public:
     return ssum_table[n - 1][target];
   }
 
-  std::vector<int> extract(ssum_data result)
+  // Function:  extract
+  // Desc:  populates first satisfying subset of minimum
+  //        cardinality which occurs lexicographically first
+  //        according to the indices of the input elements.
+  std::vector<int> extract()
   {
     std::vector<int> lexi_first;
+
+    // start the extraction from the last element in the table
     int i = elems.size() - 1;
     int x = target;
 
-    // std::cout << "size of a: " << elems.size() << std::endl;
-    // std::cout << "elements of a: " << std::endl
-    //           << "|";
-    // for (int i = 0; i < elems.size(); i++)
-    // {
-    //   std::cout << "  " << elems[i].x;
-    // }
-    // std::cout << std::endl
-    //           << std::endl;
-
+    // until we reach a base case...
     while (x > 0)
     {
-      // std::cout << "-----START LOOP-----" << std::endl;
-      // std::cout << "x is not zero" << std::endl;
-      // std::cout << "i b4: " << i << std::endl;
-      // std::cout << "x b4: " << x << std::endl
-      //           << std::endl;
-
       if (ssum_table[i][x].include)
       {
+        // add first occurring indices that have been marked
+        // for min card inclusion
         lexi_first.push_back(i);
 
-        // std::cout << "adding " << i << " to lexi_first" << std::endl;
-        // std::cout << "lexi_first: ";
-        // for (int i = 0; i < lexi_first.size(); i++)
-        // {
-        //   std::cout << lexi_first[i] << " ";
-        // }
-
+        // locate the next element to extract by following the
+        // include case
         x -= elems[i].x;
-
-        // std::cout << std::endl;
-        // std::cout << "subtracting " << elems[i].x << " (a[" << i << "]) from " << x << std::endl;
       }
       i--;
-
-      // std::cout << "decrementing i" << std::endl
-      //           << std::endl;
-
-      // std::cout << "i: " << i << std::endl;
-      // std::cout << "x: " << x << std::endl;
-      // std::cout << "-----END LOOP-----" << std::endl
-      //           << std::endl;
     }
 
-    // Manually reverse elements according to mapping offset
+    // manually reverse elements according to mapping offset
     for (int &ind : lexi_first)
-    {
       ind = elems.size() - 1 - ind;
-      // std::cout << "ind: " << ind << std::endl;
-    }
-    // std::cout << std::endl;
 
-    // std::cout << "lexi_first: ";
-    // for (int i = 0; i < lexi_first.size(); i++)
-    // {
-    //   std::cout << lexi_first[i] << " ";
-    // }
-    // std::cout << std::endl;
+    // automatically reverse elements to restore original order
+    // for class user
+    std::reverse(elems.begin(), elems.end());
 
     return lexi_first;
   }
@@ -292,6 +257,7 @@ int main(int argc, char *argv[])
   unsigned int target;
   ssum_instance ssi;
 
+  // Ensure proper command line usage
   if (argc != 2)
   {
     fprintf(stderr, "one cmd-line arg expected: target sum\n");
@@ -304,35 +270,29 @@ int main(int argc, char *argv[])
     return 0;
   }
 
-  int num_elems = ssi.read_elems(std::cin);
+  ssi.read_elems(std::cin);                             // Read in elements from stdin
+  ssum_data result = ssi.solve(target);                 // Get reference to last entry in dp ssum table
+  std::vector<int> lexi_first_min_card = ssi.extract(); // Extract lexi first min card subset
 
-  ssum_data result = ssi.solve(target);
-
-  // Print the results and report.
+  // Report all discovered data
   std::cout << "### REPORT ###" << std::endl;
-  std::cout << "  NUM ELEMS            : " << num_elems << std::endl;
+  std::cout << "  NUM ELEMS            : " << ssi.elems.size() << std::endl;
   std::cout << "  TARGET               : " << target << std::endl;
   std::cout << "  NUM-FEASIBLE         : " << result.no_v_ssets << std::endl;
   std::cout << "  MIN-CARD-FEASIBLE    : " << result.min_card << std::endl;
   std::cout << "  NUM-MIN-CARD-FEASIBLE: " << result.no_v_ssets_min_card << std::endl;
+
   std::cout << "Lex-First Min-Card Subset Totaling " << target << ": " << std::endl;
   std::cout << " {" << std::endl;
-
-  std::vector<int> lexi_first_min_card = ssi.extract(result);
-  std::reverse(ssi.elems.begin(), ssi.elems.end());
-
-  int val_sum = 0;
   for (int i = 0; i < lexi_first_min_card.size(); i++)
   {
+    // Aliases for legibility
     int id = lexi_first_min_card[i];
     int val = ssi.elems[id].x;
-    val_sum += val;
+
     std::string name = ssi.elems[id].name;
     std::cout << "  " << name << "  ( id: " << id << "; val: " << val << ")"
               << std::endl;
   }
-
   std::cout << " }" << std::endl;
-
-  // std::cout << "sum of elements of extracted subset: " << val_sum << std::endl;
 }
