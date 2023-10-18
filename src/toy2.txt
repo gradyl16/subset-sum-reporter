@@ -1,7 +1,7 @@
-2 oof
-1 add
+3 add
 2 bad
-1 cap
-4 dye
-5 end
-4 wow
+2 cow
+1 dip
+4 egg
+5 fly
+4 god

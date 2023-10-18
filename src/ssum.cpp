@@ -204,11 +204,10 @@ public:
           std::cout << lexi_first[i] << " ";
         }
 
+        x -= elems[i].x;
+
         std::cout << std::endl;
         std::cout << "subtracting " << elems[i].x << " (a[" << i << "]) from " << x << std::endl;
-
-        x -= elems[i].x;
-        // if (x == 0)
       }
       i--;
       std::cout << "decrementing i" << std::endl
@@ -219,24 +218,22 @@ public:
       std::cout << "-----END LOOP-----" << std::endl
                 << std::endl;
     }
-    if (i >= 0)
+
+    // Manually reverse elements according to mapping offset
+    for (int &ind : lexi_first)
     {
-      for (int &ind : lexi_first)
-      {
-        ind -= (i + 1);
-        std::cout << "ind: " << ind << std::endl;
-      }
-      std::cout << std::endl;
-
-      std::cout << "lexi_first: ";
-      for (int i = 0; i < lexi_first.size(); i++)
-      {
-        std::cout << lexi_first[i] << " ";
-      }
-      std::cout << std::endl;
+      ind = elems.size() - 1 - ind;
+      std::cout << "ind: " << ind << std::endl;
     }
+    std::cout << std::endl;
 
-    std::reverse(lexi_first.begin(), lexi_first.end());
+    std::cout << "lexi_first: ";
+    for (int i = 0; i < lexi_first.size(); i++)
+    {
+      std::cout << lexi_first[i] << " ";
+    }
+    std::cout << std::endl;
+
     return lexi_first;
   }
 }; // end class
