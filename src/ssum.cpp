@@ -152,8 +152,7 @@ public:
         {
           ssum_table[i][x].feasible = true;
 
-          // # of valid ssets is the sum of the # of valid ssets in the exclude and include cases
-          // Note that # valid ssets in exclude case is already stored in exclude case, so we accumulate
+          // # of valid ssets is the sum of the # of valid ssets in the exclude and include cases// Note that # valid ssets in exclude case is already stored in exclude case, so we accumulate
           ssum_table[i][x].no_v_ssets = ssum_table[i - 1][x].no_v_ssets
                                       + ssum_table[i - 1][x - elems[i].x].no_v_ssets;
 
