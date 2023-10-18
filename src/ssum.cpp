@@ -27,7 +27,6 @@ class ssum_instance
 {
   unsigned int target = 0;
   std::vector<std::vector<ssum_data>> feasible;
-  std::vector<std::vector<int>> subsets_count;
 
   // first el in this set will be lexicographically first; but logn insertion time... use vector?
   // std::set<std::set<int>> valid_min_size_subsets;
@@ -133,15 +132,7 @@ public:
         if (x >= elems[i].x && feasible[i - 1][x - elems[i].x].feasible)
         {
           feasible[i][x].feasible = true;
-
-          if (feasible[i - 1][x].smallest_valid_size + 1 == feasible[i - 1][x - elems[i].x].smallest_valid_size + 1)
-          {
-            feasible[i][x].include = feasible[i - 1][x].num_valid_subsets_min_size < feasible[i - 1][x - elems[i].x].num_valid_subsets_min_size;
-          }
-          else
-          {
-            feasible[i][x].include = feasible[i - 1][x].smallest_valid_size + 1 < feasible[i - 1][x - elems[i].x].smallest_valid_size + 1;
-          }
+          // feasible[i][x].include = true;
 
           // The number of valid distinct subsets is the sum of the number of valid distinct subsets in the exclude and include cases
           feasible[i][x].num_valid_subsets = feasible[i - 1][x].num_valid_subsets + feasible[i - 1][x - elems[i].x].num_valid_subsets;
@@ -150,22 +141,27 @@ public:
           feasible[i][x].smallest_valid_size = std::min(feasible[i - 1][x].smallest_valid_size,
                                                         feasible[i - 1][x - elems[i].x].smallest_valid_size + 1);
 
-          // It must be the case that the min card is either the min card in the exclude case or 1 greater than the min card in the include case
-          if (feasible[i][x].smallest_valid_size == feasible[i - 1][x].smallest_valid_size + 1) // The smallest cardinality for a distinct subset has not changed:
+          // The smallest valid size has either not changed, increased, or decreased
+          if (feasible[i - 1][x].smallest_valid_size == feasible[i - 1][x - elems[i].x].smallest_valid_size + 1) // The smallest cardinality for a distinct subset has not changed
           {
             // Add the number of valid subsets of the smallest valid size in the exclude case to the number of valid subsets of the smallest valid size in the include case
             feasible[i][x].num_valid_subsets_min_size = feasible[i - 1][x].num_valid_subsets_min_size + feasible[i - 1][x - elems[i].x].num_valid_subsets_min_size;
+            // feasible[i - 1][x].include = true; // Prof argues this should be true, but I don't think so
+            feasible[i][x].include = true; // Prof argues this should be true, but I don't think so
           }
-          else if (feasible[i][x].smallest_valid_size < feasible[i - 1][x - elems[i].x].smallest_valid_size + 1) // The smallest cardinality for a distinct subset has incremented
-          {
-            feasible[i][x].num_valid_subsets_min_size = feasible[i - 1][x].num_valid_subsets_min_size;
-          }
-          else
+          else if (feasible[i - 1][x].smallest_valid_size > feasible[i - 1][x - elems[i].x].smallest_valid_size + 1) // The smallest cardinality for a distinct subset has incremented
           {
             feasible[i][x].num_valid_subsets_min_size = feasible[i - 1][x - elems[i].x].num_valid_subsets_min_size;
+            // feasible[i - 1][x].include = true;
+            feasible[i][x].include = true;
+          }
+          else if (feasible[i - 1][x].smallest_valid_size < feasible[i - 1][x - elems[i].x].smallest_valid_size + 1) // The smallest cardinality for a distinct subset has decreased
+          {
+            feasible[i][x].num_valid_subsets_min_size = feasible[i - 1][x].num_valid_subsets_min_size;
+            // feasible[i - 1][x].include = true; // Prof argues this should be true, but I don't think so
+            // feasible[i][x].include = true;
           }
         }
-        // otherwise, feasible[i][x].feasible remains false
       }
     }
 
@@ -173,17 +169,73 @@ public:
     return feasible[n - 1][target];
   }
 
-  std::vector<int> extract(ssum_data result) {
+  std::vector<int> extract(ssum_data result)
+  {
     std::vector<int> lexi_first;
     int i = elems.size() - 1;
     int x = target;
-    while (i >= 0 && x >= 0) {
-      if (feasible[i][x].include) {
+
+    std::cout << "size of a: " << elems.size() << std::endl;
+    std::cout << "elements of a: " << std::endl
+              << "|";
+    for (int i = 0; i < elems.size(); i++)
+    {
+      std::cout << "  " << elems[i].x;
+    }
+    std::cout << std::endl
+              << std::endl;
+
+    while (x > 0)
+    {
+      std::cout << "-----START LOOP-----" << std::endl;
+      std::cout << "x is not zero" << std::endl;
+      std::cout << "i b4: " << i << std::endl;
+      std::cout << "x b4: " << x << std::endl
+                << std::endl;
+
+      if (feasible[i][x].include)
+      {
         lexi_first.push_back(i);
+
+        std::cout << "adding " << i << " to lexi_first" << std::endl;
+        std::cout << "lexi_first: ";
+        for (int i = 0; i < lexi_first.size(); i++)
+        {
+          std::cout << lexi_first[i] << " ";
+        }
+
+        std::cout << std::endl;
+        std::cout << "subtracting " << elems[i].x << " (a[" << i << "]) from " << x << std::endl;
+
         x -= elems[i].x;
+        // if (x == 0)
       }
       i--;
+      std::cout << "decrementing i" << std::endl
+                << std::endl;
+
+      std::cout << "i: " << i << std::endl;
+      std::cout << "x: " << x << std::endl;
+      std::cout << "-----END LOOP-----" << std::endl
+                << std::endl;
     }
+    if (i >= 0)
+    {
+      for (int &ind : lexi_first)
+      {
+        ind -= (i + 1);
+        std::cout << "ind: " << ind << std::endl;
+      }
+      std::cout << std::endl;
+
+      std::cout << "lexi_first: ";
+      for (int i = 0; i < lexi_first.size(); i++)
+      {
+        std::cout << lexi_first[i] << " ";
+      }
+      std::cout << std::endl;
+    }
+
     std::reverse(lexi_first.begin(), lexi_first.end());
     return lexi_first;
   }
@@ -241,14 +293,18 @@ int main(int argc, char *argv[])
   std::vector<int> lexi_first_min_card = ssi.extract(result);
   std::reverse(ssi.elems.begin(), ssi.elems.end());
 
+  int val_sum = 0;
   for (int i = 0; i < lexi_first_min_card.size(); i++)
   {
     int id = lexi_first_min_card[i];
     int val = ssi.elems[id].x;
+    val_sum += val;
     std::string name = ssi.elems[id].name;
     std::cout << "  " << name << "   (  id: " << id << "; val: " << val << ")"
               << std::endl;
   }
 
   std::cout << " }" << std::endl;
+
+  std::cout << "sum of elements of extracted subset: " << val_sum << std::endl;
 }
