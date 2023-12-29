@@ -1,6 +1,6 @@
 # SSum
 
-SSum is a command line program for computing and reporting on various statistics relating to a sequence of elements and a target sum.
+SSum is a command line program for computing and reporting on various statistics relating to a sequence of elements and a target sum. See `report.pdf` for a full explanation of the dynamic programming algorithm used.
 
 ## Compilation
 
