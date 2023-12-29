@@ -45,3 +45,6 @@ Thumbs.db
 ehthumbs.db
 Icon?
 ehthumbs_vista.db
+
+# Report files
+*.png
